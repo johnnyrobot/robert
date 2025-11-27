@@ -64,10 +64,31 @@ Then open http://localhost:8501
 
 Enable AI-powered text replacement to automatically update college name references in your content. Requires an [OpenRouter](https://openrouter.ai/) API key.
 
-Supported models:
-- GPT-4o / GPT-4o-mini
-- Claude 3.5 Sonnet / Claude 3 Haiku
-- Gemini Pro 1.5
+### Supported Models
+
+**Free Models:**
+| Model | ID |
+|-------|-----|
+| Grok 4.1 Fast | `x-ai/grok-4.1-fast:free` |
+| GLM 4.5 Air | `z-ai/glm-4.5-air:free` |
+| Nemotron Nano 12B | `nvidia/nemotron-nano-12b-v2-vl:free` |
+| Qwen3 Coder | `qwen/qwen3-coder:free` |
+| GPT-OSS 20B | `openai/gpt-oss-20b:free` |
+| Qwen3 235B | `qwen/qwen3-235b-a22b:free` |
+| Gemini 2.0 Flash Exp | `google/gemini-2.0-flash-exp:free` |
+| Kimi K2 | `moonshotai/kimi-k2:free` |
+| Gemma 3 12B | `google/gemma-3-12b-it:free` |
+
+**Paid Models:**
+| Model | ID |
+|-------|-----|
+| GPT 5.1 | `openai/gpt-5.1` |
+| GPT 5.1 Codex | `openai/gpt-5.1-codex` |
+| Claude Sonnet 4.5 | `anthropic/claude-sonnet-4.5` |
+| Claude Haiku 4.5 | `anthropic/claude-haiku-4.5` |
+| Gemini 2.5 Flash Lite | `google/gemini-2.5-flash-lite` |
+| Gemini 2.5 Flash | `google/gemini-2.5-flash` |
+| Gemini 3 Pro Preview | `google/gemini-3-pro-preview` |
 
 ## Deployment (Coolify)
 
