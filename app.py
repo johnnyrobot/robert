@@ -553,8 +553,8 @@ def main():
                     background-color: #1a1a2e;
                     color: #eaeaea;
                 }
-                .stSidebar {
-                    background-color: #16213e;
+                .stSidebar, section[data-testid="stSidebar"] {
+                    background-color: #16213e !important;
                 }
                 .stTextInput > div > div > input,
                 .stSelectbox > div > div > div {
