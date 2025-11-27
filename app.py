@@ -232,14 +232,14 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.error(f"Failed to connect to Canvas: {e}")
         return
 
-    # Track statistics
+    # Track statistics and updated item names
     stats = {
-        "pages": {"total": 0, "updated": 0},
-        "assignments": {"total": 0, "updated": 0},
-        "discussions": {"total": 0, "updated": 0},
-        "announcements": {"total": 0, "updated": 0},
-        "quizzes": {"total": 0, "updated": 0},
-        "new_quizzes": {"total": 0, "updated": 0},
+        "pages": {"total": 0, "updated": 0, "items": []},
+        "assignments": {"total": 0, "updated": 0, "items": []},
+        "discussions": {"total": 0, "updated": 0, "items": []},
+        "announcements": {"total": 0, "updated": 0, "items": []},
+        "quizzes": {"total": 0, "updated": 0, "items": []},
+        "new_quizzes": {"total": 0, "updated": 0, "items": []},
         "syllabus": {"updated": False}
     }
 
@@ -265,6 +265,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             page_detail.edit(wiki_page={'body': new_body})
                             time.sleep(0.5)
                         stats["pages"]["updated"] += 1
+                        stats["pages"]["items"].append(page.title)
             except:
                 pass
     except:
@@ -288,6 +289,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             assignment.edit(assignment={'description': new_desc})
                             time.sleep(0.5)
                         stats["assignments"]["updated"] += 1
+                        stats["assignments"]["items"].append(assignment.name)
             except:
                 pass
     except:
@@ -311,6 +313,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             discussion.update(message=new_msg)
                             time.sleep(0.5)
                         stats["discussions"]["updated"] += 1
+                        stats["discussions"]["items"].append(discussion.title)
             except:
                 pass
     except:
@@ -334,6 +337,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             announcement.update(message=new_msg)
                             time.sleep(0.5)
                         stats["announcements"]["updated"] += 1
+                        stats["announcements"]["items"].append(announcement.title)
             except:
                 pass
     except:
@@ -374,6 +378,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             quiz.edit(quiz={'description': new_desc})
                             time.sleep(0.5)
                         stats["quizzes"]["updated"] += 1
+                        stats["quizzes"]["items"].append(quiz.title)
             except:
                 pass
     except:
@@ -404,6 +409,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                             requests.patch(update_url, headers=headers, json={"instructions": new_instructions})
                             time.sleep(0.5)
                         stats["new_quizzes"]["updated"] += 1
+                        stats["new_quizzes"]["items"].append(nq.get('title', 'Untitled'))
     except:
         pass
 
@@ -415,17 +421,27 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
     st.write("---")
     mode_label = "DRY RUN" if dry_run else "LIVE"
 
+    # Helper function to render a category with expander
+    def render_category(icon, name, data):
+        label = f"{icon} {name}: {data['updated']}/{data['total']} updated"
+        if data['items']:
+            with st.expander(label):
+                for item in data['items']:
+                    st.write(f"• {item}")
+        else:
+            st.write(label)
+
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Pages", f"{stats['pages']['updated']}/{stats['pages']['total']} updated")
-        st.metric("Assignments", f"{stats['assignments']['updated']}/{stats['assignments']['total']} updated")
-        st.metric("Discussions", f"{stats['discussions']['updated']}/{stats['discussions']['total']} updated")
+        render_category("📄", "Pages", stats['pages'])
+        render_category("📝", "Assignments", stats['assignments'])
+        render_category("💬", "Discussions", stats['discussions'])
     with col2:
-        st.metric("Announcements", f"{stats['announcements']['updated']}/{stats['announcements']['total']} updated")
-        st.metric("Quizzes", f"{stats['quizzes']['updated']}/{stats['quizzes']['total']} updated")
-        st.metric("New Quizzes", f"{stats['new_quizzes']['updated']}/{stats['new_quizzes']['total']} updated")
+        render_category("📢", "Announcements", stats['announcements'])
+        render_category("❓", "Quizzes", stats['quizzes'])
+        render_category("❓", "New Quizzes", stats['new_quizzes'])
         if stats["syllabus"]["updated"]:
-            st.metric("Syllabus", "Updated")
+            st.write("📋 Syllabus: Updated")
 
     if dry_run:
         st.info(f"**{mode_label} complete!** No changes were written to Canvas.")
