@@ -239,7 +239,8 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("📄 Pages")
         try:
-            pages = list(course.get_pages())
+            with st.spinner("Scanning pages..."):
+                pages = list(course.get_pages())
             st.write(f"Pages found: {len(pages)}")
 
             for page in pages:
@@ -269,7 +270,8 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("📝 Assignments")
         try:
-            assignments = list(course.get_assignments())
+            with st.spinner("Scanning assignments..."):
+                assignments = list(course.get_assignments())
             st.write(f"Assignments found: {len(assignments)}")
 
             for assignment in assignments:
@@ -294,7 +296,8 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("💬 Discussions")
         try:
-            discussions = list(course.get_discussion_topics())
+            with st.spinner("Scanning discussions..."):
+                discussions = list(course.get_discussion_topics())
             st.write(f"Discussions found: {len(discussions)}")
 
             for discussion in discussions:
@@ -319,7 +322,8 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("📢 Announcements")
         try:
-            announcements = list(course.get_discussion_topics(only_announcements=True))
+            with st.spinner("Scanning announcements..."):
+                announcements = list(course.get_discussion_topics(only_announcements=True))
             st.write(f"Announcements found: {len(announcements)}")
 
             for announcement in announcements:
@@ -344,7 +348,9 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("📋 Syllabus")
         try:
-            if hasattr(course, 'syllabus_body') and course.syllabus_body:
+            with st.spinner("Scanning syllabus..."):
+                syllabus_body = getattr(course, 'syllabus_body', None)
+            if syllabus_body:
                 new_syllabus, changes = replace_colors(course.syllabus_body, target_college, replace_all)
 
                 if use_ai and openrouter_key:
@@ -355,8 +361,6 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                         course.edit(course={'syllabus_body': new_syllabus})
                         time.sleep(0.5)
                     st.write("✓ Updated SYLLABUS")
-            else:
-                st.write("No syllabus content found")
         except Exception as e:
             st.warning(f"Could not process syllabus: {e}")
 
@@ -364,8 +368,9 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.write("---")
         st.subheader("❓ Quizzes (Classic)")
         try:
-            quizzes = list(course.get_quizzes())
-            st.write(f"Quizzes (v1) found: {len(quizzes)}")
+            with st.spinner("Scanning quizzes..."):
+                quizzes = list(course.get_quizzes())
+            st.write(f"Quizzes found: {len(quizzes)}")
 
             for quiz in quizzes:
                 try:
@@ -388,17 +393,17 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         # Process New Quizzes (if available)
         st.write("---")
         st.subheader("❓ New Quizzes")
-        st.write("Fetching New Quizzes (New Quizzes API)...")
         try:
-            # New Quizzes use a different API endpoint
-            new_quizzes_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes"
-            import requests
-            headers = {"Authorization": f"Bearer {api_token}"}
-            response = requests.get(new_quizzes_url, headers=headers)
+            with st.spinner("Scanning new quizzes..."):
+                # New Quizzes use a different API endpoint
+                new_quizzes_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes"
+                import requests
+                headers = {"Authorization": f"Bearer {api_token}"}
+                response = requests.get(new_quizzes_url, headers=headers)
 
             if response.status_code == 200:
                 new_quizzes = response.json()
-                st.write(f"New Quizzes returned by API: {len(new_quizzes)}")
+                st.write(f"New Quizzes found: {len(new_quizzes)}")
 
                 for nq in new_quizzes:
                     if 'instructions' in nq and nq['instructions']:
@@ -414,7 +419,7 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
                                 time.sleep(0.5)
                             st.write(f"✓ Updated NEW QUIZ instructions: {nq.get('title', 'Untitled')}")
             else:
-                st.write("New Quizzes API not available or no quizzes found")
+                st.write("New Quizzes found: 0 (or not available)")
         except Exception as e:
             st.warning(f"Could not fetch New Quizzes: {e}")
 
@@ -529,6 +534,41 @@ def main():
                 ],
                 help="Select the AI model to use"
             )
+
+        st.write("---")
+
+        # Theme toggle
+        theme_mode = st.selectbox(
+            "Theme",
+            options=["Light", "Dark"],
+            index=0,
+            help="Switch between light and dark mode"
+        )
+
+        # Apply theme via custom CSS
+        if theme_mode == "Dark":
+            st.markdown("""
+            <style>
+                .stApp {
+                    background-color: #1a1a2e;
+                    color: #eaeaea;
+                }
+                .stSidebar {
+                    background-color: #16213e;
+                }
+                .stTextInput > div > div > input,
+                .stSelectbox > div > div > div {
+                    background-color: #1f4068;
+                    color: #eaeaea;
+                }
+                .stMarkdown, .stText, p, span, label, .stSubheader {
+                    color: #eaeaea !important;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    color: #eaeaea !important;
+                }
+            </style>
+            """, unsafe_allow_html=True)
 
         st.write("---")
 
