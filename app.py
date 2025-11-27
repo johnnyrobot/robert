@@ -232,203 +232,205 @@ def process_course(canvas_url: str, api_token: str, course_id: int, target_colle
         st.error(f"Failed to connect to Canvas: {e}")
         return
 
-    log_container = st.container()
+    # Track statistics
+    stats = {
+        "pages": {"total": 0, "updated": 0},
+        "assignments": {"total": 0, "updated": 0},
+        "discussions": {"total": 0, "updated": 0},
+        "announcements": {"total": 0, "updated": 0},
+        "quizzes": {"total": 0, "updated": 0},
+        "new_quizzes": {"total": 0, "updated": 0},
+        "syllabus": {"updated": False}
+    }
 
-    with log_container:
-        # Process Pages
-        st.write("---")
-        st.subheader("📄 Pages")
-        try:
-            with st.spinner("Scanning pages..."):
-                pages = list(course.get_pages())
-            st.write(f"Pages found: {len(pages)}")
+    progress_bar = st.progress(0, text="Starting...")
+    status_text = st.empty()
 
-            for page in pages:
-                try:
-                    page_detail = course.get_page(page.url)
-                    if page_detail.body:
-                        new_body, changes = replace_colors(page_detail.body, target_college, replace_all)
+    # Process Pages (0-15%)
+    try:
+        status_text.text("📄 Scanning pages...")
+        pages = list(course.get_pages())
+        stats["pages"]["total"] = len(pages)
 
-                        if use_ai and openrouter_key:
-                            new_body = ai_polish_content(new_body, target_college, openrouter_key, ai_model)
+        for i, page in enumerate(pages):
+            progress_bar.progress(int((i + 1) / max(len(pages), 1) * 15), text=f"📄 Processing page {i + 1}/{len(pages)}...")
+            try:
+                page_detail = course.get_page(page.url)
+                if page_detail.body:
+                    new_body, changes = replace_colors(page_detail.body, target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_body = ai_polish_content(new_body, target_college, openrouter_key, ai_model)
+                    if new_body != page_detail.body:
+                        if not dry_run:
+                            page_detail.edit(wiki_page={'body': new_body})
+                            time.sleep(0.5)
+                        stats["pages"]["updated"] += 1
+            except:
+                pass
+    except:
+        pass
 
-                        if new_body != page_detail.body:
-                            if not dry_run:
-                                page_detail.edit(wiki_page={'body': new_body})
-                                time.sleep(0.5)  # Rate limiting
-                            st.write(f"✓ Updated PAGE: {page.title}")
-                            if changes:
-                                with st.expander(f"Changes in {page.title}"):
-                                    for change in changes[:10]:
-                                        st.text(change)
-                except Exception as e:
-                    st.warning(f"Error processing page {page.title}: {e}")
-        except Exception as e:
-            st.warning(f"Could not fetch pages: {e}")
+    # Process Assignments (15-30%)
+    try:
+        status_text.text("📝 Scanning assignments...")
+        assignments = list(course.get_assignments())
+        stats["assignments"]["total"] = len(assignments)
 
-        # Process Assignments
-        st.write("---")
-        st.subheader("📝 Assignments")
-        try:
-            with st.spinner("Scanning assignments..."):
-                assignments = list(course.get_assignments())
-            st.write(f"Assignments found: {len(assignments)}")
+        for i, assignment in enumerate(assignments):
+            progress_bar.progress(15 + int((i + 1) / max(len(assignments), 1) * 15), text=f"📝 Processing assignment {i + 1}/{len(assignments)}...")
+            try:
+                if assignment.description:
+                    new_desc, changes = replace_colors(assignment.description, target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_desc = ai_polish_content(new_desc, target_college, openrouter_key, ai_model)
+                    if new_desc != assignment.description:
+                        if not dry_run:
+                            assignment.edit(assignment={'description': new_desc})
+                            time.sleep(0.5)
+                        stats["assignments"]["updated"] += 1
+            except:
+                pass
+    except:
+        pass
 
-            for assignment in assignments:
-                try:
-                    if assignment.description:
-                        new_desc, changes = replace_colors(assignment.description, target_college, replace_all)
+    # Process Discussions (30-45%)
+    try:
+        status_text.text("💬 Scanning discussions...")
+        discussions = list(course.get_discussion_topics())
+        stats["discussions"]["total"] = len(discussions)
 
-                        if use_ai and openrouter_key:
-                            new_desc = ai_polish_content(new_desc, target_college, openrouter_key, ai_model)
+        for i, discussion in enumerate(discussions):
+            progress_bar.progress(30 + int((i + 1) / max(len(discussions), 1) * 15), text=f"💬 Processing discussion {i + 1}/{len(discussions)}...")
+            try:
+                if discussion.message:
+                    new_msg, changes = replace_colors(discussion.message, target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_msg = ai_polish_content(new_msg, target_college, openrouter_key, ai_model)
+                    if new_msg != discussion.message:
+                        if not dry_run:
+                            discussion.update(message=new_msg)
+                            time.sleep(0.5)
+                        stats["discussions"]["updated"] += 1
+            except:
+                pass
+    except:
+        pass
 
-                        if new_desc != assignment.description:
-                            if not dry_run:
-                                assignment.edit(assignment={'description': new_desc})
-                                time.sleep(0.5)
-                            st.write(f"✓ Updated ASSIGNMENT: {assignment.name}")
-                except Exception as e:
-                    st.warning(f"Error processing assignment {assignment.name}: {e}")
-        except Exception as e:
-            st.warning(f"Could not fetch assignments: {e}")
+    # Process Announcements (45-60%)
+    try:
+        status_text.text("📢 Scanning announcements...")
+        announcements = list(course.get_discussion_topics(only_announcements=True))
+        stats["announcements"]["total"] = len(announcements)
 
-        # Process Discussions
-        st.write("---")
-        st.subheader("💬 Discussions")
-        try:
-            with st.spinner("Scanning discussions..."):
-                discussions = list(course.get_discussion_topics())
-            st.write(f"Discussions found: {len(discussions)}")
+        for i, announcement in enumerate(announcements):
+            progress_bar.progress(45 + int((i + 1) / max(len(announcements), 1) * 15), text=f"📢 Processing announcement {i + 1}/{len(announcements)}...")
+            try:
+                if announcement.message:
+                    new_msg, changes = replace_colors(announcement.message, target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_msg = ai_polish_content(new_msg, target_college, openrouter_key, ai_model)
+                    if new_msg != announcement.message:
+                        if not dry_run:
+                            announcement.update(message=new_msg)
+                            time.sleep(0.5)
+                        stats["announcements"]["updated"] += 1
+            except:
+                pass
+    except:
+        pass
 
-            for discussion in discussions:
-                try:
-                    if discussion.message:
-                        new_msg, changes = replace_colors(discussion.message, target_college, replace_all)
+    # Process Syllabus (60-65%)
+    try:
+        status_text.text("📋 Scanning syllabus...")
+        progress_bar.progress(60, text="📋 Processing syllabus...")
+        syllabus_body = getattr(course, 'syllabus_body', None)
+        if syllabus_body:
+            new_syllabus, changes = replace_colors(course.syllabus_body, target_college, replace_all)
+            if use_ai and openrouter_key:
+                new_syllabus = ai_polish_content(new_syllabus, target_college, openrouter_key, ai_model)
+            if new_syllabus != course.syllabus_body:
+                if not dry_run:
+                    course.edit(course={'syllabus_body': new_syllabus})
+                    time.sleep(0.5)
+                stats["syllabus"]["updated"] = True
+    except:
+        pass
 
-                        if use_ai and openrouter_key:
-                            new_msg = ai_polish_content(new_msg, target_college, openrouter_key, ai_model)
+    # Process Classic Quizzes (65-80%)
+    try:
+        status_text.text("❓ Scanning quizzes...")
+        quizzes = list(course.get_quizzes())
+        stats["quizzes"]["total"] = len(quizzes)
 
-                        if new_msg != discussion.message:
-                            if not dry_run:
-                                discussion.update(message=new_msg)
-                                time.sleep(0.5)
-                            st.write(f"✓ Updated DISCUSSION: {discussion.title}")
-                except Exception as e:
-                    st.warning(f"Error processing discussion {discussion.title}: {e}")
-        except Exception as e:
-            st.warning(f"Could not fetch discussions: {e}")
+        for i, quiz in enumerate(quizzes):
+            progress_bar.progress(65 + int((i + 1) / max(len(quizzes), 1) * 15), text=f"❓ Processing quiz {i + 1}/{len(quizzes)}...")
+            try:
+                if quiz.description:
+                    new_desc, changes = replace_colors(quiz.description, target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_desc = ai_polish_content(new_desc, target_college, openrouter_key, ai_model)
+                    if new_desc != quiz.description:
+                        if not dry_run:
+                            quiz.edit(quiz={'description': new_desc})
+                            time.sleep(0.5)
+                        stats["quizzes"]["updated"] += 1
+            except:
+                pass
+    except:
+        pass
 
-        # Process Announcements
-        st.write("---")
-        st.subheader("📢 Announcements")
-        try:
-            with st.spinner("Scanning announcements..."):
-                announcements = list(course.get_discussion_topics(only_announcements=True))
-            st.write(f"Announcements found: {len(announcements)}")
+    # Process New Quizzes (80-95%)
+    try:
+        status_text.text("❓ Scanning new quizzes...")
+        progress_bar.progress(80, text="❓ Processing new quizzes...")
+        import requests
+        new_quizzes_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes"
+        headers = {"Authorization": f"Bearer {api_token}"}
+        response = requests.get(new_quizzes_url, headers=headers)
 
-            for announcement in announcements:
-                try:
-                    if announcement.message:
-                        new_msg, changes = replace_colors(announcement.message, target_college, replace_all)
+        if response.status_code == 200:
+            new_quizzes = response.json()
+            stats["new_quizzes"]["total"] = len(new_quizzes)
 
-                        if use_ai and openrouter_key:
-                            new_msg = ai_polish_content(new_msg, target_college, openrouter_key, ai_model)
+            for i, nq in enumerate(new_quizzes):
+                progress_bar.progress(80 + int((i + 1) / max(len(new_quizzes), 1) * 15), text=f"❓ Processing new quiz {i + 1}/{len(new_quizzes)}...")
+                if 'instructions' in nq and nq['instructions']:
+                    new_instructions, changes = replace_colors(nq['instructions'], target_college, replace_all)
+                    if use_ai and openrouter_key:
+                        new_instructions = ai_polish_content(new_instructions, target_college, openrouter_key, ai_model)
+                    if new_instructions != nq['instructions']:
+                        if not dry_run:
+                            update_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes/{nq['id']}"
+                            requests.patch(update_url, headers=headers, json={"instructions": new_instructions})
+                            time.sleep(0.5)
+                        stats["new_quizzes"]["updated"] += 1
+    except:
+        pass
 
-                        if new_msg != announcement.message:
-                            if not dry_run:
-                                announcement.update(message=new_msg)
-                                time.sleep(0.5)
-                            st.write(f"✓ Updated ANNOUNCEMENT: {announcement.title}")
-                except Exception as e:
-                    st.warning(f"Error processing announcement: {e}")
-        except Exception as e:
-            st.warning(f"Could not fetch announcements: {e}")
+    # Complete
+    progress_bar.progress(100, text="Complete!")
+    status_text.empty()
 
-        # Process Syllabus
-        st.write("---")
-        st.subheader("📋 Syllabus")
-        try:
-            with st.spinner("Scanning syllabus..."):
-                syllabus_body = getattr(course, 'syllabus_body', None)
-            if syllabus_body:
-                new_syllabus, changes = replace_colors(course.syllabus_body, target_college, replace_all)
+    # Show summary
+    st.write("---")
+    mode_label = "DRY RUN" if dry_run else "LIVE"
 
-                if use_ai and openrouter_key:
-                    new_syllabus = ai_polish_content(new_syllabus, target_college, openrouter_key, ai_model)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Pages", f"{stats['pages']['updated']}/{stats['pages']['total']} updated")
+        st.metric("Assignments", f"{stats['assignments']['updated']}/{stats['assignments']['total']} updated")
+        st.metric("Discussions", f"{stats['discussions']['updated']}/{stats['discussions']['total']} updated")
+    with col2:
+        st.metric("Announcements", f"{stats['announcements']['updated']}/{stats['announcements']['total']} updated")
+        st.metric("Quizzes", f"{stats['quizzes']['updated']}/{stats['quizzes']['total']} updated")
+        st.metric("New Quizzes", f"{stats['new_quizzes']['updated']}/{stats['new_quizzes']['total']} updated")
+        if stats["syllabus"]["updated"]:
+            st.metric("Syllabus", "Updated")
 
-                if new_syllabus != course.syllabus_body:
-                    if not dry_run:
-                        course.edit(course={'syllabus_body': new_syllabus})
-                        time.sleep(0.5)
-                    st.write("✓ Updated SYLLABUS")
-        except Exception as e:
-            st.warning(f"Could not process syllabus: {e}")
-
-        # Process Classic Quizzes
-        st.write("---")
-        st.subheader("❓ Quizzes (Classic)")
-        try:
-            with st.spinner("Scanning quizzes..."):
-                quizzes = list(course.get_quizzes())
-            st.write(f"Quizzes found: {len(quizzes)}")
-
-            for quiz in quizzes:
-                try:
-                    if quiz.description:
-                        new_desc, changes = replace_colors(quiz.description, target_college, replace_all)
-
-                        if use_ai and openrouter_key:
-                            new_desc = ai_polish_content(new_desc, target_college, openrouter_key, ai_model)
-
-                        if new_desc != quiz.description:
-                            if not dry_run:
-                                quiz.edit(quiz={'description': new_desc})
-                                time.sleep(0.5)
-                            st.write(f"✓ Updated CLASSIC QUIZ instructions: {quiz.title}")
-                except Exception as e:
-                    st.warning(f"Error processing quiz {quiz.title}: {e}")
-        except Exception as e:
-            st.warning(f"Could not fetch quizzes: {e}")
-
-        # Process New Quizzes (if available)
-        st.write("---")
-        st.subheader("❓ New Quizzes")
-        try:
-            with st.spinner("Scanning new quizzes..."):
-                # New Quizzes use a different API endpoint
-                new_quizzes_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes"
-                import requests
-                headers = {"Authorization": f"Bearer {api_token}"}
-                response = requests.get(new_quizzes_url, headers=headers)
-
-            if response.status_code == 200:
-                new_quizzes = response.json()
-                st.write(f"New Quizzes found: {len(new_quizzes)}")
-
-                for nq in new_quizzes:
-                    if 'instructions' in nq and nq['instructions']:
-                        new_instructions, changes = replace_colors(nq['instructions'], target_college, replace_all)
-
-                        if use_ai and openrouter_key:
-                            new_instructions = ai_polish_content(new_instructions, target_college, openrouter_key, ai_model)
-
-                        if new_instructions != nq['instructions']:
-                            if not dry_run:
-                                update_url = f"{canvas_url}/api/quiz/v1/courses/{course_id}/quizzes/{nq['id']}"
-                                requests.patch(update_url, headers=headers, json={"instructions": new_instructions})
-                                time.sleep(0.5)
-                            st.write(f"✓ Updated NEW QUIZ instructions: {nq.get('title', 'Untitled')}")
-            else:
-                st.write("New Quizzes found: 0 (or not available)")
-        except Exception as e:
-            st.warning(f"Could not fetch New Quizzes: {e}")
-
-        # Final status
-        st.write("---")
-        if dry_run:
-            st.info("✓ **DRY RUN complete!** No changes were written to Canvas.")
-        else:
-            st.success("✓ **All updates complete!**")
+    if dry_run:
+        st.info(f"**{mode_label} complete!** No changes were written to Canvas.")
+    else:
+        st.success(f"**{mode_label} complete!** All changes have been saved.")
 
 
 def render_color_preview(college: str):
