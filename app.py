@@ -541,17 +541,35 @@ def main():
                 help="Get your key at openrouter.ai"
             )
 
-            ai_model = st.selectbox(
+            # Model options: free models first, then paid
+            ai_models = {
+                "--- Free Models ---": None,
+                "Grok 4.1 Fast (Free)": "x-ai/grok-4.1-fast:free",
+                "GLM 4.5 Air (Free)": "z-ai/glm-4.5-air:free",
+                "Nemotron Nano 12B (Free)": "nvidia/nemotron-nano-12b-v2-vl:free",
+                "Qwen3 Coder (Free)": "qwen/qwen3-coder:free",
+                "GPT-OSS 20B (Free)": "openai/gpt-oss-20b:free",
+                "Qwen3 235B (Free)": "qwen/qwen3-235b-a22b:free",
+                "Gemini 2.0 Flash Exp (Free)": "google/gemini-2.0-flash-exp:free",
+                "Kimi K2 (Free)": "moonshotai/kimi-k2:free",
+                "Gemma 3 12B (Free)": "google/gemma-3-12b-it:free",
+                "--- Paid Models ---": None,
+                "GPT 5.1": "openai/gpt-5.1",
+                "GPT 5.1 Codex": "openai/gpt-5.1-codex",
+                "Claude Sonnet 4.5": "anthropic/claude-sonnet-4.5",
+                "Claude Haiku 4.5": "anthropic/claude-haiku-4.5",
+                "Gemini 2.5 Flash Lite": "google/gemini-2.5-flash-lite",
+                "Gemini 2.5 Flash": "google/gemini-2.5-flash",
+                "Gemini 3 Pro Preview": "google/gemini-3-pro-preview",
+            }
+
+            ai_model_display = st.selectbox(
                 "AI Model",
-                options=[
-                    "openai/gpt-4o",
-                    "openai/gpt-4o-mini",
-                    "anthropic/claude-3.5-sonnet",
-                    "anthropic/claude-3-haiku",
-                    "google/gemini-pro-1.5"
-                ],
-                help="Select the AI model to use"
+                options=[k for k in ai_models.keys()],
+                index=1,  # Default to first free model
+                help="Select the AI model to use. Free models have no cost."
             )
+            ai_model = ai_models.get(ai_model_display)
 
         st.write("---")
 
