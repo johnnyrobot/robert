@@ -549,11 +549,14 @@ def main():
         if theme_mode == "Dark":
             st.markdown("""
             <style>
-                .stApp {
+                .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
                     background-color: #1a1a2e;
                     color: #eaeaea;
                 }
-                .stSidebar, section[data-testid="stSidebar"] {
+                header[data-testid="stHeader"] {
+                    background-color: #1a1a2e !important;
+                }
+                .stSidebar, section[data-testid="stSidebar"], [data-testid="stSidebarContent"] {
                     background-color: #16213e !important;
                 }
                 .stTextInput > div > div > input,
