@@ -52,8 +52,20 @@ The `COLOR_MAP` dict in `app.py` contains all 10 campus color schemes (9 college
 - `accent` - Links/buttons color
 - `full_name` - Full college name for AI replacement
 
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `FIREBASE_API_KEY` | No | Enables Firebase user authentication. Without it, the app allows open access. |
+
+## Implementation Notes
+
+- Default Canvas URL is `https://ilearn.laccd.edu` (LACCD's Canvas instance)
+- Classic Quizzes use the `canvasapi` library; New Quizzes use direct REST API calls to `/api/quiz/v1/`
+- Rate limiting: 0.5s `time.sleep()` between Canvas API write requests to avoid throttling
+- AI responses are cleaned of markdown code block wrappers before saving
+
 ## Security
 
-- Canvas API tokens and OpenRouter keys exist only in session memory
-- Rate limiting: 0.5s sleep between Canvas API write requests
+- Canvas API tokens and OpenRouter keys exist only in session memory (never persisted)
 - Non-root user in Docker container

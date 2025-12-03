@@ -253,15 +253,6 @@ def render_login_form():
                 else:
                     st.warning("Please enter email and password")
 
-        if st.button("Forgot Password?", key="forgot_pwd"):
-            email = st.text_input("Enter your email for reset", key="reset_email")
-            if email:
-                result = send_password_reset(email)
-                if result.get("success"):
-                    st.success("Password reset email sent!")
-                else:
-                    st.error(result.get("error"))
-
     with tab2:
         with st.form("signup_form"):
             new_email = st.text_input("Email", key="new_email")
